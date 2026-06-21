@@ -164,11 +164,20 @@ def login(user_info):  #login function
     while username_data_queerie(user_name,user_info) is False:
         user_name=input("That user name was not found. Please try again:")
     user_password=input("Enter your user password:")
-    while user_password_data_queerie(user_info,user_password,user_name) is False:
+    i=0
+    while user_password_data_queerie(user_info,user_password,user_name) is False and i<3:
+        i=i+1
+        print("Attempt counter:",i)
         user_password=input("Password incorrect please try again")
-    print("You have been logged in")
-    can=True
-    return user_name, user_password,can
+    if i>=3:
+        can=False
+        att=False
+        print("You have reached too many attempts. Shutting you out!!!")
+        return "","",can,att
+    else:    
+        print("You have been logged in")
+        can=True
+        return user_name, user_password,can,att
 
 def admin_login(user_info,AdminAccount,AdminPassword):
     Auser=input("What is the admin user name:")
@@ -221,7 +230,7 @@ def process(user_info,user_name,user_password):
             user_name, user_password,can = sign_up(user_info)
         else:
             
-            user_name, user_password,can = login(user_info)
+            user_name, user_password,can,att = login(user_info)
         loop=False
         if can is True:
             while loop is False:
@@ -231,6 +240,9 @@ def process(user_info,user_name,user_password):
                     loop=True
                 elif nvm=="logout":
                     loop=True
+        elif att is False:
+            print("You are being removed")
+            return "shutdown"
         else:
             print("Back to main menu")
     elif entry_option==3:
