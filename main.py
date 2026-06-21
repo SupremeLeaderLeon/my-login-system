@@ -1,8 +1,10 @@
 import json
 AdminAccount="Leon Miles"
 AdminPassword="TON618Leon"
-user_info=""
+user_name=""
 user_password=""
+user_info={}
+
 def load_info():     #loads in the data from the file
     try:
         with open("user_data.json", "r") as file:
@@ -134,10 +136,13 @@ def password_check(user_password):  #checks for password being adequate
         return True
 
 def sign_up(user_info):    #sign up function
-    user_name=input("Choose your user name:")
+    user_name=input("Choose your user name or cancel to cancel:")
+    if user_name=="cancel":
+        can=False
+        return "","",can
     while username_data_queerie(user_name,user_info) is True:
         user_name=input("That user name is already taken please select another one:")
-    user_password=input("Please choose a password that is at least 8 characters long and has both lower and upper case letters")
+    user_password=input("Please choose a password that is at least 8 characters long and has both lower and upper case letters:")
     while password_check(user_password) is False:
         user_password=input("That password is not adequate. Please try again:")
     print("You have been signed in!")
@@ -151,23 +156,34 @@ def user_password_data_queerie(user_info,user_password,user_name):       #checks
         return False
 
 def login(user_info):  #login function
-    user_name=input("Please enter your user name:")
+    user_name=input("Please enter your user name or cancel to cancel:")
+    if user_name=="cancel":
+        print("Login canceled")
+        can=False
+        return "","",can
     while username_data_queerie(user_name,user_info) is False:
         user_name=input("That user name was not found. Please try again:")
     user_password=input("Enter your user password:")
     while user_password_data_queerie(user_info,user_password,user_name) is False:
         user_password=input("Password incorrect please try again")
     print("You have been logged in")
-    return user_name, user_password
+    can=True
+    return user_name, user_password,can
 
 def admin_login(user_info,AdminAccount,AdminPassword):
     Auser=input("What is the admin user name:")
-    if Auser!=AdminAccount:
+    if Auser=="cancel":
+        print("Admin access canceled!")
+        return False
+    elif Auser!=AdminAccount:
         print("Access denied")
         return False
     else:
         Apass=input("What is the admin password:")
-        if Apass!=AdminPassword:
+        if Apass=="cancel":
+            print("Admin access canceled!")
+            return False
+        elif Apass!=AdminPassword:
             print("Access denied!")
             return False
         else:
@@ -189,6 +205,8 @@ def user_entry_options():    #main menu
         elif opt=="admin":
             print("Initiating administrator process")
             return 3
+        elif opt=="close":
+            return "shutdown"
         else:
             entry_dynamic=False
             opt=input("Please type in sign up, login or admin:")
@@ -199,33 +217,51 @@ def process(user_info,user_name,user_password):
     entry_option=user_entry_options()
     if entry_option==1 or entry_option==2:
         if entry_option==1:
-            sign_up(user_info)
+            
+            user_name, user_password,can = sign_up(user_info)
         else:
-            login(user_info)
-        nvm=choose_option_user(user_info,user_name,user_password)
-        if nvm=="shutdown":
-            return "shutdown"
+            
+            user_name, user_password,can = login(user_info)
+        loop=False
+        if can is True:
+            while loop is False:
+                nvm=choose_option_user(user_info,user_name,user_password)
+                if nvm=="shutdown":
+                    return "shutdown"
+                    loop=True
+                elif nvm=="logout":
+                    loop=True
+        else:
+            print("Back to main menu")
     elif entry_option==3:
         if admin_login(user_info,AdminAccount,AdminPassword) is False:
-            print("JIIM")
+            print("Access to admin panel is denied!!!")
         else:
             closing=choose_option_admin(user_info)
             if closing=="shutdown":
                 return "shutdown"
+    elif entry_option=="shutdown":
+        return "shutdown"
     else:
         return "shutdown"
 
+def save_info_after_deletion(user_info):
+    with open("user_data.json", "w") as file:
+        json.dump(user_info, file, indent=4)
+
 def delete_account(user_info,user_name,user_password):
-    confirmation=input("Are you sure you want to delete your account!? yes or no")
+    confirmation=input("Are you sure you want to delete your account!? yes or no:")
     conf=False
     while conf is False:
         conf=True
         if confirmation=="yes":
             del user_info[user_name]
             print("Account deleted!")
+            save_info_after_deletion(user_info)
             return True
         elif confirmation=="no":
             print("Deletion canceled!")
+            return False
         else:
             conf=False
             confirmation=input("Please confirm yes or no to delete your account")
@@ -237,18 +273,63 @@ def choose_option_user(user_info,user_name,user_password):
         if user_choice=="logout":
             rvn=True
             print("Logging out!")
+            return "logout"
         elif user_choice=="close":
             rvn=True
             return "shutdown"
         elif user_choice=="delete":
             shut=delete_account(user_info,user_name,user_password)
-            rvn=shut
+            rvn=True
+            return "logout"
+        elif user_choice=="change":
+            change_password(user_info,user_name,user_password)
+            rvn=True
+        else:
+            rvn=False
+            user_choice=input("Please choose between logout,close,delete and change")
 
-user_name=""
+
+def change_password(user_info,user_name,user_password):
+    cur_pass=input("Enter your current password or enter cancel to cancel:")
+    pass_not=False
+    while pass_not is False:
+        pass_not=True
+        if cur_pass=="cancel":
+            print("Password change canceled")
+        elif cur_pass==user_password:
+            newpass=input("Enter your new password it must be at least 8 characters long and have both upper and lower case letters or cancel:")
+            newp=False
+            while newp is False:
+                newp=True
+                if newp=="cancel":
+                    print("process canceled")
+                else:
+                    if password_check(newpass) is False:
+                        newp=False
+                        newpass=input("Password did not fit requirements please try again:")
+                    else:
+                        newpass2=input("Please re-enter your new password to confirm change or type cancel to cancel:")
+                        newp2=False
+                        while newp2 is False:
+                            newp2=True
+                            if newpass2==newpass:
+                                user_info[user_name]=newpass
+                                save_info(user_info,user_name,user_password)
+                                print("New password saved!")
+                            elif newpass2=="cancel":
+                                print("Process canceled")
+                            else:
+                                newp2=False
+                                newpass2=input("Please enter your new password or cancel")
+
+        else:
+            pass_not=False
+            cur_pass=input("Please enter your password or cancel:")
 
 infinity=False
 while infinity is False:
     close=process(user_info, user_name ,user_password)
+    save_info(user_info,user_name,user_password)
     if close=="shutdown":
         infinity=True
         print("App shutting down!")
